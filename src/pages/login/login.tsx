@@ -14,8 +14,9 @@ import { LockFilled, LockOutlined, UserOutlined } from "@ant-design/icons";
 import Logo from "../../components/icons/Logo";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Credentials } from "../../types";
-import { login, self } from "../../http/api";
+import { login, self, logout } from "../../http/api";
 import { useAuthStore } from "../../store";
+import { usePermission } from "../../hooks/usePermission";
 type FieldType = {
   username: string;
   password: string;
@@ -36,8 +37,9 @@ const getSelf = async () => {
   return data;
 };
 const Login = () => {
-  const { setUser } = useAuthStore();
-  const { data: selfData, refetch } = useQuery({
+  const { isAllowed } = usePermission();
+  const { setUser, logout: logoutFromStore } = useAuthStore();
+  const { refetch } = useQuery({
     queryKey: ["self"],
     queryFn: getSelf,
     enabled: false,
@@ -47,9 +49,16 @@ const Login = () => {
     mutationFn: loginUser,
     onSuccess: async () => {
       const { data } = await refetch();
+      if (!isAllowed(data?.role)) {
+        await logout();
+        logoutFromStore();
+        return;
+      }
+
       setUser(data);
     },
   });
+
   return (
     <Layout style={{ height: "100vh", display: "grid", placeItems: "center" }}>
       <Space direction="vertical" align="center" size={"large"}>
