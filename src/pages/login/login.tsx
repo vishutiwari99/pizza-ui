@@ -1,22 +1,42 @@
-import { Button, Checkbox, Form, Space, Input, FormProps, Flex } from "antd";
+import {
+  Button,
+  Checkbox,
+  Form,
+  Space,
+  Input,
+  FormProps,
+  Flex,
+  Alert,
+} from "antd";
 import Card from "antd/es/card/Card";
 import Layout, { Content } from "antd/es/layout/layout";
 import { LockFilled, LockOutlined, UserOutlined } from "@ant-design/icons";
 import Logo from "../../components/icons/Logo";
+import { useMutation } from "@tanstack/react-query";
+import { Credentials } from "../../types";
+import { login } from "../../http/api";
 type FieldType = {
-  username?: string;
-  password?: string;
-  remember?: string;
-};
-
-const onFinish: FormProps<FieldType>["onFinish"] = (values) => {
-  console.log("Success:", values);
+  username: string;
+  password: string;
+  remember: string;
 };
 
 const onFinishFailed: FormProps<FieldType>["onFinishFailed"] = (errorInfo) => {
   console.log("Failed:", errorInfo);
 };
+
+const loginUser = async (credentials: Credentials) => {
+  const { data } = await login(credentials);
+  return data;
+};
 const Login = () => {
+  const { mutate, isPending, isError, error } = useMutation({
+    mutationKey: ["login"],
+    mutationFn: loginUser,
+    onSuccess: () => {
+      console.log("success");
+    },
+  });
   return (
     <Layout style={{ height: "100vh", display: "grid", placeItems: "center" }}>
       <Space direction="vertical" align="center" size={"large"}>
@@ -44,10 +64,19 @@ const Login = () => {
           <Form
             name="basic"
             initialValues={{ remember: true }}
-            onFinish={onFinish}
+            onFinish={(values) => {
+              mutate({ email: values.username, password: values.password });
+            }}
             onFinishFailed={onFinishFailed}
             autoComplete="off"
           >
+            {isError && (
+              <Alert
+                style={{ marginBottom: 24 }}
+                message={error.message}
+                type="error"
+              />
+            )}
             <Form.Item<FieldType>
               name="username"
               rules={[
@@ -91,6 +120,7 @@ const Login = () => {
                 style={{ width: "100%" }}
                 type="primary"
                 htmlType="submit"
+                loading={isPending}
               >
                 Submit
               </Button>
