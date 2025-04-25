@@ -36,6 +36,10 @@ const getSelf = async () => {
   const { data } = await self();
   return data;
 };
+
+const logOut = async () => {
+  return await logout();
+};
 const Login = () => {
   const { isAllowed } = usePermission();
   const { setUser, logout: logoutFromStore } = useAuthStore();
@@ -44,14 +48,26 @@ const Login = () => {
     queryFn: getSelf,
     enabled: false,
   });
+
+  const {
+    mutate: logoutMutate,
+    isPending: logoutIsPending,
+    error: logoutError,
+  } = useMutation({
+    mutationKey: ["logout"],
+    mutationFn: logOut,
+    onSuccess: () => {
+      logoutFromStore();
+    },
+  });
   const { mutate, isPending, isError, error } = useMutation({
     mutationKey: ["login"],
     mutationFn: loginUser,
     onSuccess: async () => {
       const { data } = await refetch();
-      if (!isAllowed(data?.role)) {
-        await logout();
-        logoutFromStore();
+      console.log("isAllowed(data?.role)", isAllowed(data?.role));
+      if (!isAllowed(data)) {
+        logoutMutate();
         return;
       }
 
@@ -95,7 +111,7 @@ const Login = () => {
             {isError && (
               <Alert
                 style={{ marginBottom: 24 }}
-                message={error.message}
+                message={error.message || logoutError?.message}
                 type="error"
               />
             )}
@@ -142,7 +158,7 @@ const Login = () => {
                 style={{ width: "100%" }}
                 type="primary"
                 htmlType="submit"
-                loading={isPending}
+                loading={isPending || logoutIsPending}
               >
                 Submit
               </Button>
