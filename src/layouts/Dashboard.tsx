@@ -24,38 +24,49 @@ import Logo from "../components/icons/Logo";
 import Resturants from "../components/icons/Resturants";
 import { useMutation } from "@tanstack/react-query";
 import { logout } from "../http/api";
-const items = [
-  {
-    key: "/",
-    icon: <HomeFilled />,
-    label: <NavLink to="/">Home</NavLink>,
-  },
-  {
-    key: "/users",
-    icon: <UserOutlined />,
-    label: <NavLink to="/users">Users</NavLink>,
-  },
-  {
-    key: "/resturants",
-    icon: <Icon component={Resturants} />,
-    label: <NavLink to="/resturants">Resturants</NavLink>,
-  },
-  {
-    key: "/products",
-    icon: <ProductOutlined />,
-    label: <NavLink to="/products">Products</NavLink>,
-  },
-  {
-    key: "/promos",
-    icon: <GiftOutlined />,
-    label: <NavLink to="/promos">Promos</NavLink>,
-  },
-];
+
+const getMenuItems = (role: string) => {
+  const baseItems = [
+    {
+      key: "/",
+      icon: <HomeFilled />,
+      label: <NavLink to="/">Home</NavLink>,
+    },
+
+    {
+      key: "/resturants",
+      icon: <Icon component={Resturants} />,
+      label: <NavLink to="/resturants">Resturants</NavLink>,
+    },
+    {
+      key: "/products",
+      icon: <ProductOutlined />,
+      label: <NavLink to="/products">Products</NavLink>,
+    },
+    {
+      key: "/promos",
+      icon: <GiftOutlined />,
+      label: <NavLink to="/promos">Promos</NavLink>,
+    },
+  ];
+
+  if (role === "admin") {
+    const menus = [...baseItems];
+    menus?.splice(1, 0, {
+      key: "/users",
+      icon: <UserOutlined />,
+      label: <NavLink to="/users">Users</NavLink>,
+    });
+    return menus;
+  }
+  return baseItems;
+};
+
 const logOut = async () => {
   return await logout();
 };
 const Dashboard = () => {
-  const { logout: logoutFromStore } = useAuthStore();
+  const { logout: logoutFromStore, user } = useAuthStore();
 
   const { mutate: logoutMutate } = useMutation({
     mutationKey: ["logout"],
@@ -68,7 +79,7 @@ const Dashboard = () => {
   const {
     token: { colorBgContainer },
   } = theme.useToken();
-  const { user } = useAuthStore();
+  const items = getMenuItems(user?.role as string);
   if (user === null) {
     return <Navigate to="auth/login" replace={true} />;
   }
