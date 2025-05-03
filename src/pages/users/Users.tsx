@@ -1,12 +1,22 @@
 import { PlusOutlined, RightOutlined } from "@ant-design/icons";
 import { useQuery } from "@tanstack/react-query";
-import { Breadcrumb, Button, Drawer, Space, Table, TableProps } from "antd";
+import {
+  Breadcrumb,
+  Button,
+  Drawer,
+  Form,
+  Space,
+  Table,
+  TableProps,
+  theme,
+} from "antd";
 import { Link, Navigate } from "react-router-dom";
 import { getUsers } from "../../http/api";
 import { User } from "../../types";
 import { useAuthStore } from "../../store";
 import UsersFilter from "./UsersFilter";
 import { useState } from "react";
+import UserForm from "./forms/UserForm";
 const columns: TableProps<User>["columns"] = [
   {
     title: "ID",
@@ -40,6 +50,9 @@ const columns: TableProps<User>["columns"] = [
 const Users = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const { user } = useAuthStore();
+  const {
+    token: { colorBgLayout },
+  } = theme.useToken();
 
   const {
     data: users,
@@ -84,6 +97,7 @@ const Users = () => {
         <Drawer
           title="Create User"
           placement="right"
+          styles={{ body: { background: colorBgLayout } }}
           width={720}
           destroyOnClose={true}
           onClose={() => setDrawerOpen(false)}
@@ -95,7 +109,9 @@ const Users = () => {
             </Space>
           }
         >
-          <p>Some contetnt</p>
+          <Form layout="vertical">
+            <UserForm />
+          </Form>
         </Drawer>
       </Space>
     </>
