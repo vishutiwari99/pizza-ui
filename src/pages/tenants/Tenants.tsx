@@ -1,11 +1,20 @@
 import { PlusOutlined, RightOutlined } from "@ant-design/icons";
-import { Breadcrumb, Button, Drawer, Space, Table, TableProps } from "antd";
+import {
+  Breadcrumb,
+  Button,
+  Drawer,
+  Form,
+  Space,
+  Table,
+  TableProps,
+} from "antd";
 import { Link } from "react-router-dom";
 import { Tenant } from "../../types";
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { getTenants } from "../../http/api";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { createTenant, getTenants } from "../../http/api";
 import TenantsFilter from "./TenantsFilter";
+import TenantForm from "./forms/TenantForm";
 
 const columns: TableProps<Tenant>["columns"] = [
   {
@@ -29,7 +38,24 @@ const columns: TableProps<Tenant>["columns"] = [
   },
 ];
 const Tenants = () => {
+  const queryClient = useQueryClient();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [form] = Form.useForm();
+  const { mutate: tenantMutate } = useMutation({
+    mutationKey: ["tenant"],
+    mutationFn: async (data: Tenant) =>
+      createTenant(data).then((response) => response.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tenants"] });
+      return;
+    },
+  });
+  const handleSubmit = async () => {
+    await form.validateFields();
+    await tenantMutate(form.getFieldsValue());
+    setDrawerOpen(false);
+    form.resetFields();
+  };
 
   const {
     data: tenants,
@@ -77,12 +103,23 @@ const Tenants = () => {
         open={drawerOpen}
         extra={
           <Space>
-            <Button>Cancel</Button>
-            <Button type="primary">Submit</Button>
+            <Button
+              onClick={() => {
+                setDrawerOpen(false);
+                form.resetFields();
+              }}
+            >
+              Cancel
+            </Button>
+            <Button type="primary" onClick={handleSubmit}>
+              Submit
+            </Button>
           </Space>
         }
       >
-        <p>Some contetnt</p>
+        <Form layout="vertical" form={form}>
+          <TenantForm />
+        </Form>
       </Drawer>
     </Space>
   );
