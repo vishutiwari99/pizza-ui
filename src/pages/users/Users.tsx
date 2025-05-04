@@ -1,5 +1,10 @@
 import { PlusOutlined, RightOutlined } from "@ant-design/icons";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   Breadcrumb,
   Button,
@@ -83,7 +88,7 @@ const Users = () => {
     data: users,
     error,
     isError,
-    isLoading,
+    isFetching,
   } = useQuery({
     queryKey: ["users", queryParams],
     queryFn: () => {
@@ -93,6 +98,7 @@ const Users = () => {
       console.log(queryString);
       return getUsers(queryString).then((response) => response.data);
     },
+    placeholderData: keepPreviousData,
   });
   if (user?.role !== "admin") {
     return <Navigate to="/" />;
@@ -107,7 +113,7 @@ const Users = () => {
             { title: "Users" },
           ]}
         />
-        {isLoading && <div>Loading...</div>}
+
         {isError && <div>{error.message}</div>}
         <UsersFilter
           onFilterChange={(filterName: string, filterValue: string) => {
@@ -123,6 +129,7 @@ const Users = () => {
           </Button>
         </UsersFilter>
         <Table<User>
+          loading={isFetching}
           columns={columns}
           dataSource={users?.data}
           pagination={{
