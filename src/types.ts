@@ -27,3 +27,8 @@ export interface Tenant {
   name: string;
   address: string;
 }
+
+export type FieldsData = {
+  name: string[];
+  value?: string;
+};
