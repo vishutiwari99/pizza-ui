@@ -20,9 +20,10 @@ import { createUser, getUsers } from "../../http/api";
 import { CreateUserData, FieldsData, User } from "../../types";
 import { useAuthStore } from "../../store";
 import UsersFilter from "./UsersFilter";
-import { useState } from "react";
+import React, { useState } from "react";
 import UserForm from "./forms/UserForm";
 import { PER_PAGE } from "../../constant";
+import { debounce } from "lodash";
 const columns: TableProps<User>["columns"] = [
   {
     title: "ID",
@@ -81,6 +82,14 @@ const Users = () => {
     form.resetFields();
     setDrawerOpen(false);
   };
+  const debounceQueryUpdate = React.useMemo(() => {
+    return debounce((value: string | undefined) => {
+      setQueryParams((prev) => ({
+        ...prev,
+        q: value,
+      }));
+    }, 1000);
+  }, []);
   const onFilterChange = (changedFields: FieldsData[]) => {
     const changedFilterFields = changedFields
       .map((field) => {
@@ -89,10 +98,14 @@ const Users = () => {
         };
       })
       .reduce((acc, item) => ({ ...acc, ...item }), {});
-    setQueryParams((prev) => ({
-      ...prev,
-      ...changedFilterFields,
-    }));
+    if ("q" in changedFilterFields) {
+      debounceQueryUpdate(changedFilterFields.q);
+    } else {
+      setQueryParams((prev) => ({
+        ...prev,
+        ...changedFilterFields,
+      }));
+    }
   };
   const {
     token: { colorBgLayout },
