@@ -41,6 +41,13 @@ const columns: TableProps<User>["columns"] = [
       </span>
     ),
   },
+
+  {
+    title: "Email",
+    dataIndex: "email",
+    key: "email",
+    render: (text: string) => <span>{text}</span>,
+  },
   {
     title: "Role",
     dataIndex: "role",
@@ -48,10 +55,10 @@ const columns: TableProps<User>["columns"] = [
     render: (text: string) => <span>{text}</span>,
   },
   {
-    title: "Email",
-    dataIndex: "email",
-    key: "email",
-    render: (text: string) => <span>{text}</span>,
+    title: "Resturant",
+    dataIndex: "tenant",
+    key: "tenant",
+    render: (_text: string, record: User) => <span>{record.tenant?.name}</span>,
   },
 ];
 const Users = () => {
