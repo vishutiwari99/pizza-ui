@@ -9,12 +9,19 @@ import {
   TableProps,
 } from "antd";
 import { Link } from "react-router-dom";
-import { Tenant } from "../../types";
-import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { FieldsData, Tenant } from "../../types";
+import React, { useState } from "react";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { createTenant, getTenants } from "../../http/api";
 import TenantsFilter from "./TenantsFilter";
 import TenantForm from "./forms/TenantForm";
+import { debounce } from "lodash";
+import { PER_PAGE } from "../../constant";
 
 const columns: TableProps<Tenant>["columns"] = [
   {
@@ -41,6 +48,11 @@ const Tenants = () => {
   const queryClient = useQueryClient();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [form] = Form.useForm();
+  const [filterForm] = Form.useForm();
+  const [queryParams, setQueryParams] = useState({
+    perPage: PER_PAGE,
+    currentPage: 1,
+  });
   const { mutate: tenantMutate } = useMutation({
     mutationKey: ["tenant"],
     mutationFn: async (data: Tenant) =>
@@ -57,16 +69,50 @@ const Tenants = () => {
     form.resetFields();
   };
 
+  const debounceQueryUpdate = React.useMemo(() => {
+    return debounce((value: string | undefined) => {
+      setQueryParams((prev) => ({
+        ...prev,
+        q: value,
+        currentPage: 1,
+      }));
+    }, 500);
+  }, []);
+  const onFilterChange = (changedFields: FieldsData[]) => {
+    const changedFilterFields = changedFields
+      .map((field) => ({
+        [field.name[0]]: field.value,
+      }))
+      .reduce((acc, cur) => ({ ...acc, ...cur }), {});
+
+    if ("q" in changedFilterFields) {
+      debounceQueryUpdate(changedFilterFields.q);
+    } else {
+      setQueryParams((prev) => ({
+        ...prev,
+        ...changedFilterFields,
+        currentPage: 1,
+      }));
+    }
+  };
+
   const {
     data: tenants,
     error,
     isError,
     isLoading,
   } = useQuery({
-    queryKey: ["tenants"],
+    queryKey: ["tenants", queryParams],
     queryFn: () => {
-      return getTenants().then((response) => response.data);
+      const filteredQueryParams = Object.entries(queryParams).filter(
+        (item) => !!item[1]
+      );
+      const queryString = new URLSearchParams(
+        filteredQueryParams as unknown as Record<string, string>
+      ).toString();
+      return getTenants(queryString).then((response) => response.data);
     },
+    placeholderData: keepPreviousData,
   });
 
   return (
@@ -80,20 +126,18 @@ const Tenants = () => {
       />
       {isLoading && <div>Loading...</div>}
       {isError && <div>{error.message}</div>}
-      <TenantsFilter
-        onFilterChange={(filterName: string, filterValue: string) => {
-          console.log(filterName, filterValue);
-        }}
-      >
-        <Button
-          onClick={() => setDrawerOpen(true)}
-          type="primary"
-          icon={<PlusOutlined />}
-        >
-          Add Restaurant
-        </Button>
-      </TenantsFilter>
-      <Table<Tenant> columns={columns} dataSource={tenants} />
+      <Form form={filterForm} onFieldsChange={onFilterChange}>
+        <TenantsFilter>
+          <Button
+            onClick={() => setDrawerOpen(true)}
+            type="primary"
+            icon={<PlusOutlined />}
+          >
+            Add Restaurant
+          </Button>
+        </TenantsFilter>
+      </Form>
+      <Table<Tenant> columns={columns} dataSource={tenants?.data} />
       <Drawer
         title="Create Resturant"
         placement="right"
@@ -117,7 +161,7 @@ const Tenants = () => {
           </Space>
         }
       >
-        <Form layout="vertical" form={form}>
+        <Form layout="vertical" form={form} onFieldsChange={onFilterChange}>
           <TenantForm />
         </Form>
       </Drawer>

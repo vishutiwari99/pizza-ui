@@ -134,7 +134,6 @@ const Users = () => {
       const queryString = new URLSearchParams(
         filteredQueryParams as unknown as Record<string, string>
       ).toString();
-      console.log(queryString);
       return getUsers(queryString).then((response) => response.data);
     },
     placeholderData: keepPreviousData,
