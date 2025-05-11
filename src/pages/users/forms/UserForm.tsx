@@ -2,12 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, Col, Form, Input, Row, Select, Space } from "antd";
 import { getTenants } from "../../../http/api";
 import { Tenant } from "../../../types";
-import { useState } from "react";
 
-const UserForm = () => {
-  const [selectedRole, setSelectedRole] = useState<string | undefined>(
-    undefined
-  );
+const UserForm = ({ isEditMode = false }: { isEditMode: boolean }) => {
   const { data: tenants } = useQuery({
     queryKey: ["tenants"],
     queryFn: () => {
@@ -68,24 +64,27 @@ const UserForm = () => {
               </Col>
             </Row>
           </Card>
-          <Card title="Security information">
-            <Row gutter={20}>
-              <Col span={12}>
-                <Form.Item
-                  label="Password"
-                  name="password"
-                  rules={[
-                    {
-                      required: true,
-                      message: "Password is required",
-                    },
-                  ]}
-                >
-                  <Input size={"large"} type="password" />
-                </Form.Item>
-              </Col>
-            </Row>
-          </Card>
+          {!isEditMode && (
+            <Card title="Security information">
+              <Row gutter={20}>
+                <Col span={12}>
+                  <Form.Item
+                    label="Password"
+                    name="password"
+                    rules={[
+                      {
+                        required: true,
+                        message: "Password is required",
+                      },
+                    ]}
+                  >
+                    <Input size={"large"} type="password" />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </Card>
+          )}
+
           <Card title="Auth Info">
             <Row gutter={20}>
               <Col span={12}>
@@ -103,10 +102,8 @@ const UserForm = () => {
                     size="large"
                     style={{ width: "100%" }}
                     allowClear={true}
-                    onChange={(selectedItem) => {
-                      setSelectedRole(selectedItem);
-                    }}
                     placeholder="Select role"
+                    id="selectBoxInUserForm"
                   >
                     <Select.Option value="admin">Admin</Select.Option>
                     <Select.Option value="manager">Manager</Select.Option>
@@ -114,37 +111,34 @@ const UserForm = () => {
                   </Select>
                 </Form.Item>
               </Col>
-
-              {selectedRole === "manager" && (
-                <Col span={12}>
-                  <Form.Item
-                    label="Restaurants"
-                    name="tenantId"
-                    rules={[
-                      {
-                        required: true,
-                        message: "Restaurant is required",
-                      },
-                    ]}
+              <Col span={12}>
+                <Form.Item
+                  label="Restaurants"
+                  name="tenantId"
+                  rules={[
+                    {
+                      required: true,
+                      message: "Restaurant is required",
+                    },
+                  ]}
+                >
+                  <Select
+                    size="large"
+                    style={{ width: "100%" }}
+                    allowClear={true}
+                    onChange={(selectedItem) =>
+                      console.log("selected item", selectedItem)
+                    }
+                    placeholder="Select restaurant"
                   >
-                    <Select
-                      size="large"
-                      style={{ width: "100%" }}
-                      allowClear={true}
-                      onChange={(selectedItem) =>
-                        console.log("selected item", selectedItem)
-                      }
-                      placeholder="Select restaurant"
-                    >
-                      {tenants?.map((tenant: Tenant) => (
-                        <Select.Option value={tenant.id}>
-                          {tenant.name}
-                        </Select.Option>
-                      ))}
-                    </Select>
-                  </Form.Item>
-                </Col>
-              )}
+                    {tenants?.data.map((tenant: Tenant) => (
+                      <Select.Option value={tenant.id}>
+                        {tenant.name}
+                      </Select.Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              </Col>
             </Row>
           </Card>
         </Space>

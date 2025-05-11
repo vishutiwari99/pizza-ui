@@ -16,11 +16,11 @@ import {
   theme,
 } from "antd";
 import { Link, Navigate } from "react-router-dom";
-import { createUser, getUsers } from "../../http/api";
+import { createUser, getUsers, updateUser } from "../../http/api";
 import { CreateUserData, FieldsData, User } from "../../types";
 import { useAuthStore } from "../../store";
 import UsersFilter from "./UsersFilter";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import UserForm from "./forms/UserForm";
 import { PER_PAGE } from "../../constant";
 import { debounce } from "lodash";
@@ -66,10 +66,6 @@ const Users = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [form] = Form.useForm();
   const [filterForm] = Form.useForm();
-  const [queryParams, setQueryParams] = useState({
-    perPage: PER_PAGE,
-    currentPage: 1,
-  });
 
   const { user } = useAuthStore();
   const { mutate: userMutate } = useMutation({
@@ -82,12 +78,48 @@ const Users = () => {
     },
   });
 
+  const { mutate: updateUserMutate } = useMutation({
+    mutationKey: ["update-user"],
+    mutationFn: async (data: CreateUserData) =>
+      updateUser(data, currentEditingUser!.id).then(
+        (response) => response.data
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      return;
+    },
+  });
+
+  const [currentEditingUser, setCurrentEditingUser] = useState<User | null>(
+    null
+  );
+  const [queryParams, setQueryParams] = useState({
+    perPage: PER_PAGE,
+    currentPage: 1,
+  });
+
+  useEffect(() => {
+    if (currentEditingUser) {
+      setDrawerOpen(true);
+      form.setFieldsValue({
+        ...currentEditingUser,
+        tenantId: currentEditingUser.tenant?.id,
+      });
+    }
+  }, [currentEditingUser, form]);
+
   const handleSubmit = async () => {
+    const isEditMode = !!currentEditingUser;
     await form.validateFields();
-    console.log(form.getFieldsValue());
-    await userMutate(form.getFieldsValue());
+    if (isEditMode) {
+      await updateUserMutate(form.getFieldsValue());
+    } else {
+      await userMutate(form.getFieldsValue());
+    }
+
     form.resetFields();
     setDrawerOpen(false);
+    setCurrentEditingUser(null);
   };
   const debounceQueryUpdate = React.useMemo(() => {
     return debounce((value: string | undefined) => {
@@ -167,7 +199,29 @@ const Users = () => {
 
         <Table<User>
           loading={isFetching}
-          columns={columns}
+          columns={[
+            ...columns,
+
+            {
+              title: "Actions",
+              // dataIndex: "tenant",
+              // key: "tenant",
+              render: (_text: string, record: User) => (
+                console.log(_text),
+                (
+                  <Space>
+                    <Button
+                      type="link"
+                      onClick={() => setCurrentEditingUser(record)}
+                    >
+                      Edit
+                    </Button>
+                    <Button type="link">Delete</Button>
+                  </Space>
+                )
+              ),
+            },
+          ]}
           dataSource={users?.data}
           pagination={{
             total: users?.total,
@@ -187,12 +241,16 @@ const Users = () => {
           }}
         />
         <Drawer
-          title="Create User"
+          title={currentEditingUser ? `Edit User` : `Add User`}
           placement="right"
           styles={{ body: { background: colorBgLayout } }}
           width={720}
           destroyOnClose={true}
-          onClose={() => setDrawerOpen(false)}
+          onClose={() => {
+            form.resetFields();
+            setCurrentEditingUser(null);
+            setDrawerOpen(false);
+          }}
           open={drawerOpen}
           extra={
             <Space>
@@ -200,6 +258,7 @@ const Users = () => {
                 onClick={() => {
                   form.resetFields();
                   setDrawerOpen(false);
+                  setCurrentEditingUser(null);
                 }}
               >
                 Cancel
@@ -211,7 +270,7 @@ const Users = () => {
           }
         >
           <Form layout="vertical" form={form}>
-            <UserForm />
+            <UserForm isEditMode={!!currentEditingUser} />
           </Form>
         </Drawer>
       </Space>
