@@ -137,7 +137,26 @@ const Tenants = () => {
           </Button>
         </TenantsFilter>
       </Form>
-      <Table<Tenant> columns={columns} dataSource={tenants?.data} />
+      <Table<Tenant>
+        columns={columns}
+        dataSource={tenants?.data}
+        pagination={{
+          total: tenants?.total,
+          current: queryParams.currentPage,
+          pageSize: queryParams.perPage,
+          onChange: (page) => {
+            setQueryParams((prev) => {
+              return {
+                ...prev,
+                currentPage: page,
+              };
+            });
+          },
+          showTotal: (total: number, range: number[]) => {
+            return `Showing ${range[0]}-${range[1]} of ${total} items`;
+          },
+        }}
+      />
       <Drawer
         title="Create Resturant"
         placement="right"
